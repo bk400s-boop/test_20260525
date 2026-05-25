@@ -1,0 +1,1114 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JARVIS :: COMMAND CENTER</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Rajdhani:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cyan: #00f5ff;
+    --blue: #0080ff;
+    --blue-dim: #003f7f;
+    --orange: #ff6b00;
+    --red: #ff2244;
+    --green: #00ff88;
+    --bg: #020812;
+    --bg2: #040f1e;
+    --panel: rgba(0, 20, 50, 0.7);
+    --border: rgba(0, 245, 255, 0.3);
+    --glow-cyan: 0 0 8px #00f5ff, 0 0 20px rgba(0,245,255,0.4);
+    --glow-orange: 0 0 8px #ff6b00, 0 0 24px rgba(255,107,0,0.5);
+    --glow-red: 0 0 8px #ff2244, 0 0 24px rgba(255,34,68,0.5);
+    --glow-green: 0 0 8px #00ff88, 0 0 20px rgba(0,255,136,0.4);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--cyan);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 14px;
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  /* Grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,245,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,245,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Scanline effect */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.1) 2px,
+      rgba(0,0,0,0.1) 4px
+    );
+    pointer-events: none;
+    z-index: 1;
+    animation: scanlines 8s linear infinite;
+  }
+
+  @keyframes scanlines {
+    0% { background-position: 0 0; }
+    100% { background-position: 0 40px; }
+  }
+
+  /* Corner decoration for panels */
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    position: relative;
+    backdrop-filter: blur(10px);
+    clip-path: polygon(12px 0%, 100% 0%, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0% 100%, 0% 12px);
+  }
+
+  .panel::before, .panel::after {
+    content: '';
+    position: absolute;
+    width: 10px; height: 10px;
+    border-color: var(--cyan);
+    border-style: solid;
+  }
+  .panel::before { top: -1px; left: -1px; border-width: 2px 0 0 2px; box-shadow: var(--glow-cyan); }
+  .panel::after  { bottom: -1px; right: -1px; border-width: 0 2px 2px 0; box-shadow: var(--glow-cyan); }
+
+  /* ───────────────── HEADER ───────────────── */
+  header {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 32px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, rgba(0,30,60,0.9) 0%, transparent 100%);
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .logo-ring {
+    width: 44px; height: 44px;
+    border: 2px solid var(--cyan);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: var(--glow-cyan);
+    animation: spin-slow 8s linear infinite;
+    position: relative;
+  }
+  .logo-ring::before {
+    content: '';
+    position: absolute;
+    width: 32px; height: 32px;
+    border: 1px solid rgba(0,245,255,0.4);
+    border-radius: 50%;
+    animation: spin-slow 4s linear infinite reverse;
+  }
+  .logo-dot {
+    width: 8px; height: 8px;
+    background: var(--cyan);
+    border-radius: 50%;
+    box-shadow: var(--glow-cyan);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes spin-slow { to { transform: rotate(360deg); } }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(0.8)} }
+
+  .logo-text h1 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 22px;
+    font-weight: 900;
+    letter-spacing: 6px;
+    color: var(--cyan);
+    text-shadow: var(--glow-cyan);
+  }
+  .logo-text p {
+    font-size: 10px;
+    letter-spacing: 4px;
+    color: rgba(0,245,255,0.5);
+    font-family: 'Orbitron', sans-serif;
+  }
+
+  .clock-section {
+    text-align: center;
+  }
+  #clock {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 36px;
+    font-weight: 700;
+    color: var(--cyan);
+    text-shadow: var(--glow-cyan);
+    letter-spacing: 4px;
+    line-height: 1;
+  }
+  #date {
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: rgba(0,245,255,0.6);
+    margin-top: 4px;
+    font-family: 'Orbitron', sans-serif;
+  }
+
+  .status-widgets {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+  }
+  .widget {
+    text-align: center;
+    font-family: 'Orbitron', sans-serif;
+  }
+  .widget-label {
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: rgba(0,245,255,0.4);
+    margin-bottom: 4px;
+  }
+  .widget-bar {
+    width: 64px;
+    height: 4px;
+    background: rgba(0,245,255,0.1);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .widget-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--blue), var(--cyan));
+    box-shadow: var(--glow-cyan);
+    border-radius: 2px;
+    transition: width 1s ease;
+  }
+  .widget-val {
+    font-size: 10px;
+    color: var(--cyan);
+    margin-top: 2px;
+  }
+
+  /* ───────────────── MAIN LAYOUT ───────────────── */
+  .main-grid {
+    position: relative;
+    z-index: 5;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+    padding: 16px 24px;
+    max-width: 1600px;
+    margin: 0 auto;
+  }
+
+  /* ───────────────── PANEL HEADERS ───────────────── */
+  .panel-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 18px 10px;
+    border-bottom: 1px solid var(--border);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    color: var(--cyan);
+  }
+  .panel-header .icon {
+    width: 6px; height: 6px;
+    background: var(--cyan);
+    border-radius: 50%;
+    box-shadow: var(--glow-cyan);
+    animation: pulse 2s infinite;
+  }
+  .panel-header .count-badge {
+    margin-left: auto;
+    background: rgba(0,245,255,0.15);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 2px 10px;
+    font-size: 10px;
+    color: var(--cyan);
+  }
+
+  /* ───────────────── CHECKLIST ───────────────── */
+  .todo-panel { padding-bottom: 12px; }
+
+  .todo-list { padding: 8px 14px; }
+
+  .todo-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 4px;
+    border-bottom: 1px solid rgba(0,245,255,0.07);
+    transition: background 0.2s;
+    border-radius: 4px;
+    cursor: pointer;
+    position: relative;
+  }
+  .todo-item:hover { background: rgba(0,245,255,0.05); }
+
+  .todo-check {
+    width: 20px; height: 20px;
+    border: 1.5px solid var(--cyan);
+    border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.3s;
+    box-shadow: 0 0 4px rgba(0,245,255,0.3);
+    cursor: pointer;
+    background: transparent;
+    position: relative;
+    overflow: hidden;
+  }
+  .todo-check.done {
+    background: rgba(0,245,255,0.2);
+    border-color: var(--cyan);
+    box-shadow: var(--glow-cyan);
+  }
+  .todo-check.done::after {
+    content: '✓';
+    color: var(--cyan);
+    font-size: 12px;
+    font-weight: bold;
+    text-shadow: var(--glow-cyan);
+  }
+
+  .todo-text {
+    flex: 1;
+    font-size: 13px;
+    font-weight: 400;
+    letter-spacing: 0.5px;
+    transition: all 0.3s;
+    color: rgba(0,245,255,0.9);
+  }
+  .todo-item.done .todo-text {
+    text-decoration: line-through;
+    color: rgba(0,245,255,0.3);
+  }
+
+  .todo-priority {
+    font-size: 9px;
+    font-family: 'Orbitron', sans-serif;
+    letter-spacing: 1px;
+    padding: 2px 7px;
+    border-radius: 10px;
+  }
+  .priority-high { color: var(--red); border: 1px solid var(--red); box-shadow: var(--glow-red); }
+  .priority-mid  { color: var(--orange); border: 1px solid var(--orange); }
+  .priority-low  { color: rgba(0,245,255,0.5); border: 1px solid rgba(0,245,255,0.2); }
+
+  .todo-delete {
+    opacity: 0;
+    background: none; border: none; cursor: pointer;
+    color: rgba(255,34,68,0.6);
+    font-size: 14px;
+    transition: opacity 0.2s;
+    padding: 0 4px;
+  }
+  .todo-item:hover .todo-delete { opacity: 1; }
+
+  .add-todo {
+    display: flex;
+    gap: 8px;
+    padding: 10px 14px 4px;
+    border-top: 1px solid var(--border);
+    margin-top: 4px;
+  }
+  .add-todo input {
+    flex: 1;
+    background: rgba(0,245,255,0.05);
+    border: 1px solid var(--border);
+    color: var(--cyan);
+    padding: 7px 12px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    clip-path: polygon(6px 0%, 100% 0%, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0% 100%, 0% 6px);
+  }
+  .add-todo input::placeholder { color: rgba(0,245,255,0.3); }
+  .add-todo input:focus { border-color: var(--cyan); box-shadow: var(--glow-cyan); }
+
+  .add-todo select {
+    background: rgba(0,245,255,0.05);
+    border: 1px solid var(--border);
+    color: var(--cyan);
+    padding: 7px 8px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 9px;
+    outline: none;
+    cursor: pointer;
+  }
+  .add-todo select option { background: #040f1e; }
+
+  .btn-add {
+    background: rgba(0,245,255,0.1);
+    border: 1px solid var(--cyan);
+    color: var(--cyan);
+    padding: 7px 16px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 10px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: all 0.2s;
+    clip-path: polygon(6px 0%, 100% 0%, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0% 100%, 0% 6px);
+  }
+  .btn-add:hover {
+    background: rgba(0,245,255,0.2);
+    box-shadow: var(--glow-cyan);
+  }
+
+  /* ───────────────── SCHEDULE ───────────────── */
+  .schedule-list { padding: 8px 14px; }
+
+  .schedule-item {
+    display: flex;
+    gap: 12px;
+    padding: 8px 4px;
+    border-bottom: 1px solid rgba(0,245,255,0.07);
+    align-items: flex-start;
+    position: relative;
+  }
+  .schedule-item::before {
+    content: '';
+    position: absolute;
+    left: 52px;
+    top: 0; bottom: 0;
+    width: 1px;
+    background: linear-gradient(180deg, var(--border), transparent);
+  }
+
+  .schedule-time {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 11px;
+    color: var(--blue);
+    width: 44px;
+    flex-shrink: 0;
+    text-shadow: 0 0 6px var(--blue);
+    padding-top: 2px;
+  }
+
+  .schedule-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 5px;
+    position: relative;
+    z-index: 1;
+  }
+  .dot-cyan { background: var(--cyan); box-shadow: var(--glow-cyan); }
+  .dot-blue { background: var(--blue); box-shadow: 0 0 8px var(--blue); }
+  .dot-orange { background: var(--orange); box-shadow: var(--glow-orange); }
+  .dot-green { background: var(--green); box-shadow: var(--glow-green); }
+
+  .schedule-content {}
+  .schedule-title {
+    font-weight: 600;
+    font-size: 13px;
+    color: rgba(0,245,255,0.9);
+    margin-bottom: 2px;
+  }
+  .schedule-detail {
+    font-size: 11px;
+    color: rgba(0,245,255,0.4);
+    letter-spacing: 0.5px;
+  }
+  .schedule-tag {
+    display: inline-block;
+    font-size: 9px;
+    font-family: 'Orbitron', sans-serif;
+    padding: 1px 6px;
+    border-radius: 8px;
+    margin-top: 4px;
+    letter-spacing: 1px;
+  }
+  .tag-meeting { background: rgba(0,128,255,0.15); border: 1px solid rgba(0,128,255,0.4); color: var(--blue); }
+  .tag-work    { background: rgba(0,245,255,0.1); border: 1px solid rgba(0,245,255,0.3); color: var(--cyan); }
+  .tag-personal{ background: rgba(0,255,136,0.1); border: 1px solid rgba(0,255,136,0.3); color: var(--green); }
+  .tag-urgent  { background: rgba(255,34,68,0.1); border: 1px solid rgba(255,34,68,0.4); color: var(--red); animation: blink 1.5s step-end infinite; }
+
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  .current-time-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 4px;
+    margin: 4px 0;
+  }
+  .current-time-line .now-label {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 9px;
+    color: var(--green);
+    letter-spacing: 2px;
+  }
+  .now-bar {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, var(--green), transparent);
+    box-shadow: 0 0 4px var(--green);
+  }
+
+  /* ───────────────── PROJECTS ───────────────── */
+  .project-list { padding: 8px 14px; }
+
+  .project-item {
+    padding: 12px 8px;
+    border-bottom: 1px solid rgba(0,245,255,0.07);
+  }
+  .project-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  .project-name {
+    font-weight: 600;
+    font-size: 14px;
+    color: rgba(0,245,255,0.9);
+    letter-spacing: 1px;
+  }
+  .project-pct {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 12px;
+    color: var(--cyan);
+  }
+
+  .progress-bar {
+    width: 100%;
+    height: 5px;
+    background: rgba(0,245,255,0.1);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 8px;
+    position: relative;
+  }
+  .progress-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 1s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .progress-fill::after {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+    animation: shimmer 2s infinite;
+  }
+  @keyframes shimmer { to { left: 100%; } }
+
+  .fill-cyan   { background: linear-gradient(90deg, var(--blue), var(--cyan)); box-shadow: var(--glow-cyan); }
+  .fill-orange { background: linear-gradient(90deg, #ff4400, var(--orange)); box-shadow: var(--glow-orange); }
+  .fill-green  { background: linear-gradient(90deg, #00cc66, var(--green)); box-shadow: var(--glow-green); }
+  .fill-red    { background: linear-gradient(90deg, #cc0022, var(--red)); box-shadow: var(--glow-red); }
+
+  .project-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+  .ptag {
+    font-size: 9px;
+    font-family: 'Orbitron', sans-serif;
+    padding: 2px 8px;
+    border-radius: 10px;
+    letter-spacing: 1px;
+  }
+  .ptag-done    { background: rgba(0,255,136,0.1); border: 1px solid rgba(0,255,136,0.3); color: var(--green); }
+  .ptag-pending { background: rgba(0,128,255,0.1); border: 1px solid rgba(0,128,255,0.3); color: var(--blue); }
+  .ptag-warn    { background: rgba(255,107,0,0.1); border: 1px solid rgba(255,107,0,0.4); color: var(--orange); animation: blink 2s step-end infinite; }
+  .ptag-crit    { background: rgba(255,34,68,0.1);  border: 1px solid rgba(255,34,68,0.5); color: var(--red); animation: blink 1s step-end infinite; }
+
+  /* ───────────────── FUTURE PLANS ───────────────── */
+  .future-section { margin-top: 16px; }
+  .future-section .panel-header { border-top: 1px solid var(--border); }
+
+  .timeline { padding: 8px 14px; position: relative; }
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 26px; top: 0; bottom: 0;
+    width: 1px;
+    background: linear-gradient(180deg, var(--border), transparent 80%);
+  }
+
+  .timeline-item {
+    display: flex;
+    gap: 12px;
+    padding: 8px 0;
+    align-items: flex-start;
+  }
+  .tl-marker {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    border: 2px solid var(--cyan);
+    background: var(--bg);
+    flex-shrink: 0;
+    margin-top: 3px;
+    position: relative;
+    z-index: 1;
+  }
+  .tl-marker.active {
+    background: var(--cyan);
+    box-shadow: var(--glow-cyan);
+    animation: pulse 2s infinite;
+  }
+  .tl-content {}
+  .tl-date {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 9px;
+    color: rgba(0,245,255,0.4);
+    letter-spacing: 2px;
+    margin-bottom: 2px;
+  }
+  .tl-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: rgba(0,245,255,0.85);
+  }
+  .tl-desc {
+    font-size: 11px;
+    color: rgba(0,245,255,0.4);
+    margin-top: 2px;
+  }
+
+  /* ───────────────── WARNING PANEL ───────────────── */
+  .warning-section {
+    position: relative;
+    z-index: 5;
+    padding: 0 24px 24px;
+    max-width: 1600px;
+    margin: 0 auto;
+  }
+
+  .warning-panel {
+    background: rgba(10, 5, 0, 0.8);
+    border: 1px solid rgba(255, 107, 0, 0.4);
+    position: relative;
+    backdrop-filter: blur(10px);
+    clip-path: polygon(12px 0%, 100% 0%, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0% 100%, 0% 12px);
+  }
+  .warning-panel::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255,107,0,0.04) 0%, transparent 50%);
+    pointer-events: none;
+  }
+
+  .warning-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 18px;
+    border-bottom: 1px solid rgba(255,107,0,0.3);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    color: var(--orange);
+    text-shadow: var(--glow-orange);
+  }
+  .warn-icon {
+    width: 18px; height: 18px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    animation: blink 1.2s step-end infinite;
+  }
+
+  .warning-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 12px;
+    padding: 14px 18px;
+  }
+
+  .warn-card {
+    background: rgba(255, 107, 0, 0.05);
+    border: 1px solid rgba(255, 107, 0, 0.3);
+    padding: 12px 14px;
+    position: relative;
+    clip-path: polygon(6px 0%, 100% 0%, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0% 100%, 0% 6px);
+  }
+  .warn-card.critical {
+    background: rgba(255, 34, 68, 0.05);
+    border-color: rgba(255, 34, 68, 0.4);
+    box-shadow: inset 0 0 20px rgba(255,34,68,0.05), 0 0 12px rgba(255,34,68,0.1);
+  }
+
+  .warn-project {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 9px;
+    color: rgba(255,107,0,0.6);
+    letter-spacing: 2px;
+    margin-bottom: 6px;
+  }
+  .warn-card.critical .warn-project { color: rgba(255,34,68,0.7); }
+
+  .warn-item-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--orange);
+    text-shadow: var(--glow-orange);
+    margin-bottom: 4px;
+  }
+  .warn-card.critical .warn-item-title { color: var(--red); text-shadow: var(--glow-red); }
+
+  .warn-desc {
+    font-size: 11px;
+    color: rgba(255,107,0,0.6);
+    line-height: 1.4;
+  }
+  .warn-card.critical .warn-desc { color: rgba(255,34,68,0.6); }
+
+  .warn-deadline {
+    margin-top: 8px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 9px;
+    color: rgba(255,107,0,0.5);
+    letter-spacing: 1px;
+  }
+  .warn-card.critical .warn-deadline { color: rgba(255,34,68,0.6); animation: blink 1.5s step-end infinite; }
+
+  /* ───────────────── SCROLLBAR ───────────────── */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(0,245,255,0.2); border-radius: 2px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(0,245,255,0.4); }
+
+  /* ───────────────── RESPONSIVE ───────────────── */
+  @media (max-width: 1100px) {
+    .main-grid { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 720px) {
+    .main-grid { grid-template-columns: 1fr; }
+    header { flex-direction: column; gap: 12px; padding: 12px 16px; }
+    .status-widgets { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════ HEADER ══════ -->
+<header>
+  <div class="logo">
+    <div class="logo-ring">
+      <div class="logo-dot"></div>
+    </div>
+    <div class="logo-text">
+      <h1>J.A.R.V.I.S</h1>
+      <p>COMMAND CENTER v2.0</p>
+    </div>
+  </div>
+
+  <div class="clock-section">
+    <div id="clock">00:00:00</div>
+    <div id="date">LOADING...</div>
+  </div>
+
+  <div class="status-widgets">
+    <div class="widget">
+      <div class="widget-label">CPU</div>
+      <div class="widget-bar"><div class="widget-fill" id="cpu-bar" style="width:42%"></div></div>
+      <div class="widget-val" id="cpu-val">42%</div>
+    </div>
+    <div class="widget">
+      <div class="widget-label">MEM</div>
+      <div class="widget-bar"><div class="widget-fill" id="mem-bar" style="width:67%"></div></div>
+      <div class="widget-val" id="mem-val">67%</div>
+    </div>
+    <div class="widget">
+      <div class="widget-label">NET</div>
+      <div class="widget-bar"><div class="widget-fill" id="net-bar" style="width:85%"></div></div>
+      <div class="widget-val" id="net-val">85%</div>
+    </div>
+  </div>
+</header>
+
+<!-- ══════ MAIN GRID ══════ -->
+<div class="main-grid">
+
+  <!-- ── 오늘의 할일 ── -->
+  <div class="panel todo-panel">
+    <div class="panel-header">
+      <div class="icon"></div>
+      오늘의 할일
+      <span class="count-badge" id="todo-count">0/0</span>
+    </div>
+    <div class="todo-list" id="todo-list"></div>
+    <div class="add-todo">
+      <input type="text" id="todo-input" placeholder="새 할일 입력..." />
+      <select id="priority-select">
+        <option value="high">HIGH</option>
+        <option value="mid" selected>MID</option>
+        <option value="low">LOW</option>
+      </select>
+      <button class="btn-add" onclick="addTodo()">ADD</button>
+    </div>
+  </div>
+
+  <!-- ── 스케줄 ── -->
+  <div class="panel">
+    <div class="panel-header">
+      <div class="icon"></div>
+      스케줄 관리
+    </div>
+    <div class="schedule-list" id="schedule-list">
+      <div class="schedule-item">
+        <span class="schedule-time">09:00</span>
+        <div class="schedule-dot dot-cyan"></div>
+        <div class="schedule-content">
+          <div class="schedule-title">팀 스탠드업 미팅</div>
+          <div class="schedule-detail">전체 팀 / 30분</div>
+          <span class="schedule-tag tag-meeting">MEETING</span>
+        </div>
+      </div>
+      <div class="schedule-item">
+        <span class="schedule-time">10:30</span>
+        <div class="schedule-dot dot-blue"></div>
+        <div class="schedule-content">
+          <div class="schedule-title">프론트엔드 코드 리뷰</div>
+          <div class="schedule-detail">GitHub PR #142, #145</div>
+          <span class="schedule-tag tag-work">WORK</span>
+        </div>
+      </div>
+      <div class="current-time-line">
+        <span class="now-label">▶ NOW</span>
+        <div class="now-bar"></div>
+      </div>
+      <div class="schedule-item">
+        <span class="schedule-time">13:00</span>
+        <div class="schedule-dot dot-orange"></div>
+        <div class="schedule-content">
+          <div class="schedule-title">클라이언트 데모 발표</div>
+          <div class="schedule-detail">ACME Corp / Zoom 링크</div>
+          <span class="schedule-tag tag-urgent">URGENT</span>
+        </div>
+      </div>
+      <div class="schedule-item">
+        <span class="schedule-time">15:00</span>
+        <div class="schedule-dot dot-cyan"></div>
+        <div class="schedule-content">
+          <div class="schedule-title">기술 문서 작성</div>
+          <div class="schedule-detail">API 명세서 v3.0 업데이트</div>
+          <span class="schedule-tag tag-work">WORK</span>
+        </div>
+      </div>
+      <div class="schedule-item">
+        <span class="schedule-time">17:30</span>
+        <div class="schedule-dot dot-green"></div>
+        <div class="schedule-content">
+          <div class="schedule-title">주간 회고 & 플래닝</div>
+          <div class="schedule-detail">다음 주 스프린트 계획</div>
+          <span class="schedule-tag tag-meeting">MEETING</span>
+        </div>
+      </div>
+      <div class="schedule-item">
+        <span class="schedule-time">19:00</span>
+        <div class="schedule-dot dot-blue"></div>
+        <div class="schedule-content">
+          <div class="schedule-title">개인 스터디 - AI/ML</div>
+          <div class="schedule-detail">트랜스포머 아키텍처 심화</div>
+          <span class="schedule-tag tag-personal">PERSONAL</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 프로젝트 & 향후계획 ── -->
+  <div style="display:flex;flex-direction:column;gap:16px;">
+    <div class="panel">
+      <div class="panel-header">
+        <div class="icon"></div>
+        프로젝트 현황
+      </div>
+      <div class="project-list">
+
+        <div class="project-item">
+          <div class="project-header-row">
+            <span class="project-name">ALPHA — 플랫폼 재설계</span>
+            <span class="project-pct">78%</span>
+          </div>
+          <div class="progress-bar"><div class="progress-fill fill-cyan" style="width:78%"></div></div>
+          <div class="project-tags">
+            <span class="ptag ptag-done">UI 완료</span>
+            <span class="ptag ptag-pending">API 연동</span>
+            <span class="ptag ptag-warn">DB 최적화 지연</span>
+          </div>
+        </div>
+
+        <div class="project-item">
+          <div class="project-header-row">
+            <span class="project-name">BETA — 모바일 앱 v2</span>
+            <span class="project-pct">45%</span>
+          </div>
+          <div class="progress-bar"><div class="progress-fill fill-orange" style="width:45%"></div></div>
+          <div class="project-tags">
+            <span class="ptag ptag-done">기획 완료</span>
+            <span class="ptag ptag-crit">푸시알림 미구현</span>
+            <span class="ptag ptag-crit">결제 모듈 누락</span>
+          </div>
+        </div>
+
+        <div class="project-item">
+          <div class="project-header-row">
+            <span class="project-name">GAMMA — AI 분석 엔진</span>
+            <span class="project-pct">92%</span>
+          </div>
+          <div class="progress-bar"><div class="progress-fill fill-green" style="width:92%"></div></div>
+          <div class="project-tags">
+            <span class="ptag ptag-done">모델 학습</span>
+            <span class="ptag ptag-done">API 서버</span>
+            <span class="ptag ptag-warn">성능 테스트 미완</span>
+          </div>
+        </div>
+
+        <div class="project-item">
+          <div class="project-header-row">
+            <span class="project-name">DELTA — 보안 감사</span>
+            <span class="project-pct">20%</span>
+          </div>
+          <div class="progress-bar"><div class="progress-fill fill-red" style="width:20%"></div></div>
+          <div class="project-tags">
+            <span class="ptag ptag-crit">침투 테스트 미착수</span>
+            <span class="ptag ptag-crit">보안 정책 미비</span>
+            <span class="ptag ptag-crit">인증 모듈 취약</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="panel future-section">
+      <div class="panel-header">
+        <div class="icon"></div>
+        향후 계획
+      </div>
+      <div class="timeline">
+        <div class="timeline-item">
+          <div class="tl-marker active"></div>
+          <div class="tl-content">
+            <div class="tl-date">2026-05-30</div>
+            <div class="tl-title">ALPHA 플랫폼 베타 출시</div>
+            <div class="tl-desc">내부 테스터 50명 대상 클로즈 베타</div>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="tl-marker"></div>
+          <div class="tl-content">
+            <div class="tl-date">2026-06-15</div>
+            <div class="tl-title">모바일 앱 스토어 심사 제출</div>
+            <div class="tl-desc">iOS App Store / Google Play 동시 심사</div>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="tl-marker"></div>
+          <div class="tl-content">
+            <div class="tl-date">2026-07-01</div>
+            <div class="tl-title">AI 엔진 프로덕션 배포</div>
+            <div class="tl-desc">AWS EKS 클러스터 전환, 모니터링 구성</div>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="tl-marker"></div>
+          <div class="tl-content">
+            <div class="tl-date">2026-07-31</div>
+            <div class="tl-title">보안 감사 완료 목표</div>
+            <div class="tl-desc">외부 보안 컨설팅 펌 최종 보고서 수령</div>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="tl-marker"></div>
+          <div class="tl-content">
+            <div class="tl-date">2026-09-01</div>
+            <div class="tl-title">Q3 전체 제품 정식 런칭</div>
+            <div class="tl-desc">마케팅 캠페인, 프레스 릴리즈 예정</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main-grid -->
+
+<!-- ══════ WARNING PANEL ══════ -->
+<div class="warning-section">
+  <div class="warning-panel">
+    <div class="warning-header">
+      <div class="warn-icon">⚠</div>
+      미비사항 경보 — 즉시 조치 필요
+      <span style="margin-left:auto;font-size:9px;opacity:0.6" id="warn-count"></span>
+    </div>
+    <div class="warning-grid">
+
+      <div class="warn-card critical">
+        <div class="warn-project">PROJECT BETA</div>
+        <div class="warn-item-title">⛔ 결제 모듈 미구현</div>
+        <div class="warn-desc">앱스토어 출시 전 필수 구현 항목. 인앱결제 SDK 연동 및 영수증 검증 로직 누락 상태.</div>
+        <div class="warn-deadline">마감: 2026-06-10 · 잔여 18일</div>
+      </div>
+
+      <div class="warn-card critical">
+        <div class="warn-project">PROJECT BETA</div>
+        <div class="warn-item-title">⛔ 푸시 알림 시스템 미구현</div>
+        <div class="warn-desc">FCM / APNs 연동 미착수. 사용자 온보딩 플로우 차단 요소.</div>
+        <div class="warn-deadline">마감: 2026-06-10 · 잔여 18일</div>
+      </div>
+
+      <div class="warn-card critical">
+        <div class="warn-project">PROJECT DELTA</div>
+        <div class="warn-item-title">⛔ 보안 정책 문서 미비</div>
+        <div class="warn-desc">ISO 27001 준수를 위한 보안 정책 및 절차 문서 미작성. 감사 일정 위험.</div>
+        <div class="warn-deadline">마감: 2026-07-15 · 잔여 53일</div>
+      </div>
+
+      <div class="warn-card critical">
+        <div class="warn-project">PROJECT DELTA</div>
+        <div class="warn-item-title">⛔ 인증 모듈 취약점 패치</div>
+        <div class="warn-desc">JWT 토큰 만료 처리 오류, CSRF 방어 미적용. 즉각 수정 필요.</div>
+        <div class="warn-deadline">마감: 2026-05-31 · 잔여 8일</div>
+      </div>
+
+      <div class="warn-card">
+        <div class="warn-project">PROJECT ALPHA</div>
+        <div class="warn-item-title">⚡ DB 쿼리 최적화 지연</div>
+        <div class="warn-desc">핵심 API 응답속도 목표(200ms) 미달성. N+1 쿼리 문제 해결 필요.</div>
+        <div class="warn-deadline">마감: 2026-05-28 · 잔여 5일</div>
+      </div>
+
+      <div class="warn-card">
+        <div class="warn-project">PROJECT GAMMA</div>
+        <div class="warn-item-title">⚡ 성능 테스트 미완료</div>
+        <div class="warn-desc">부하 테스트(1000 RPS) 및 장애 복구 시나리오 테스트 미실시.</div>
+        <div class="warn-deadline">마감: 2026-06-28 · 잔여 36일</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+// ── 시계 ──
+function updateClock() {
+  const now = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  document.getElementById('clock').textContent =
+    `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+  const days = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+  const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+  document.getElementById('date').textContent =
+    `${days[now.getDay()]} · ${now.getFullYear()}.${pad(now.getMonth()+1)}.${pad(now.getDate())} · ${months[now.getMonth()]}`;
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ── 시스템 위젯 애니메이션 ──
+function animateWidgets() {
+  const widgets = [
+    { bar: 'cpu-bar', val: 'cpu-val', base: 35, range: 40 },
+    { bar: 'mem-bar', val: 'mem-val', base: 55, range: 25 },
+    { bar: 'net-bar', val: 'net-val', base: 60, range: 35 },
+  ];
+  widgets.forEach(w => {
+    const v = Math.round(w.base + Math.random() * w.range);
+    document.getElementById(w.bar).style.width = v + '%';
+    document.getElementById(w.val).textContent = v + '%';
+  });
+}
+setInterval(animateWidgets, 2000);
+
+// ── 할일 체크리스트 ──
+const DEFAULT_TODOS = [
+  { id: 1, text: '클라이언트 데모 자료 최종 점검', priority: 'high', done: false },
+  { id: 2, text: 'ALPHA 프로젝트 DB 최적화 이슈 검토', priority: 'high', done: false },
+  { id: 3, text: 'PR 코드 리뷰 (#142, #145)', priority: 'mid', done: true },
+  { id: 4, text: 'API 명세서 v3.0 초안 작성', priority: 'mid', done: false },
+  { id: 5, text: 'DELTA 보안 취약점 패치 담당자 배정', priority: 'high', done: false },
+  { id: 6, text: '주간 회의록 공유', priority: 'low', done: true },
+];
+
+function loadTodos() {
+  try {
+    const saved = localStorage.getItem('jarvis_todos');
+    return saved ? JSON.parse(saved) : DEFAULT_TODOS;
+  } catch { return DEFAULT_TODOS; }
+}
+
+function saveTodos(todos) {
+  localStorage.setItem('jarvis_todos', JSON.stringify(todos));
+}
+
+function renderTodos() {
+  const todos = loadTodos();
+  const list = document.getElementById('todo-list');
+  const done = todos.filter(t => t.done).length;
+  document.getElementById('todo-count').textContent = `${done}/${todos.length}`;
+
+  list.innerHTML = todos.map(t => `
+    <div class="todo-item ${t.done ? 'done' : ''}" onclick="toggleTodo(${t.id})">
+      <div class="todo-check ${t.done ? 'done' : ''}"></div>
+      <span class="todo-text">${escHtml(t.text)}</span>
+      <span class="todo-priority priority-${t.priority}">${t.priority.toUpperCase()}</span>
+      <button class="todo-delete" onclick="deleteTodo(event,${t.id})">✕</button>
+    </div>
+  `).join('');
+}
+
+function toggleTodo(id) {
+  const todos = loadTodos();
+  const t = todos.find(x => x.id === id);
+  if (t) t.done = !t.done;
+  saveTodos(todos);
+  renderTodos();
+}
+
+function deleteTodo(e, id) {
+  e.stopPropagation();
+  const todos = loadTodos().filter(t => t.id !== id);
+  saveTodos(todos);
+  renderTodos();
+}
+
+function addTodo() {
+  const input = document.getElementById('todo-input');
+  const text = input.value.trim();
+  if (!text) return;
+  const priority = document.getElementById('priority-select').value;
+  const todos = loadTodos();
+  const newId = todos.length > 0 ? Math.max(...todos.map(t => t.id)) + 1 : 1;
+  todos.push({ id: newId, text, priority, done: false });
+  saveTodos(todos);
+  input.value = '';
+  renderTodos();
+}
+
+document.getElementById('todo-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') addTodo();
+});
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+document.getElementById('warn-count').textContent = '경보 6건 활성';
+
+renderTodos();
+</script>
+</body>
+</html>
