@@ -466,6 +466,52 @@
     box-shadow: 0 0 4px var(--green);
   }
 
+  .schedule-del {
+    opacity: 0;
+    background: none; border: none; cursor: pointer;
+    color: rgba(255,34,68,0.6);
+    font-size: 14px;
+    transition: opacity 0.2s;
+    padding: 0 4px;
+    margin-left: auto;
+    align-self: flex-start;
+  }
+  .schedule-item:hover .schedule-del { opacity: 1; }
+
+  /* ───────────────── AI ASSISTANT ───────────────── */
+  .ai-panel { grid-column: 1 / -1; }
+  .chat-log {
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 320px;
+    overflow-y: auto;
+  }
+  .chat-msg {
+    max-width: 85%;
+    font-size: 12px;
+    line-height: 1.5;
+    letter-spacing: 0.3px;
+    padding: 7px 11px;
+    border-radius: 10px;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .chat-msg.user {
+    align-self: flex-end;
+    background: rgba(0,245,255,0.12);
+    border: 1px solid rgba(0,245,255,0.35);
+    color: rgba(0,245,255,0.95);
+    box-shadow: var(--glow-cyan);
+  }
+  .chat-msg.bot {
+    align-self: flex-start;
+    background: var(--panel);
+    border: 1px solid rgba(0,128,255,0.35);
+    color: rgba(180,225,255,0.92);
+  }
+
   /* ───────────────── PROJECTS ───────────────── */
   .project-list { padding: 8px 14px; }
 
@@ -769,66 +815,7 @@
       <div class="icon"></div>
       스케줄 관리
     </div>
-    <div class="schedule-list" id="schedule-list">
-      <div class="schedule-item">
-        <span class="schedule-time">09:00</span>
-        <div class="schedule-dot dot-cyan"></div>
-        <div class="schedule-content">
-          <div class="schedule-title">팀 스탠드업 미팅</div>
-          <div class="schedule-detail">전체 팀 / 30분</div>
-          <span class="schedule-tag tag-meeting">MEETING</span>
-        </div>
-      </div>
-      <div class="schedule-item">
-        <span class="schedule-time">10:30</span>
-        <div class="schedule-dot dot-blue"></div>
-        <div class="schedule-content">
-          <div class="schedule-title">프론트엔드 코드 리뷰</div>
-          <div class="schedule-detail">GitHub PR #142, #145</div>
-          <span class="schedule-tag tag-work">WORK</span>
-        </div>
-      </div>
-      <div class="current-time-line">
-        <span class="now-label">▶ NOW</span>
-        <div class="now-bar"></div>
-      </div>
-      <div class="schedule-item">
-        <span class="schedule-time">13:00</span>
-        <div class="schedule-dot dot-orange"></div>
-        <div class="schedule-content">
-          <div class="schedule-title">클라이언트 데모 발표</div>
-          <div class="schedule-detail">ACME Corp / Zoom 링크</div>
-          <span class="schedule-tag tag-urgent">URGENT</span>
-        </div>
-      </div>
-      <div class="schedule-item">
-        <span class="schedule-time">15:00</span>
-        <div class="schedule-dot dot-cyan"></div>
-        <div class="schedule-content">
-          <div class="schedule-title">기술 문서 작성</div>
-          <div class="schedule-detail">API 명세서 v3.0 업데이트</div>
-          <span class="schedule-tag tag-work">WORK</span>
-        </div>
-      </div>
-      <div class="schedule-item">
-        <span class="schedule-time">17:30</span>
-        <div class="schedule-dot dot-green"></div>
-        <div class="schedule-content">
-          <div class="schedule-title">주간 회고 & 플래닝</div>
-          <div class="schedule-detail">다음 주 스프린트 계획</div>
-          <span class="schedule-tag tag-meeting">MEETING</span>
-        </div>
-      </div>
-      <div class="schedule-item">
-        <span class="schedule-time">19:00</span>
-        <div class="schedule-dot dot-blue"></div>
-        <div class="schedule-content">
-          <div class="schedule-title">개인 스터디 - AI/ML</div>
-          <div class="schedule-detail">트랜스포머 아키텍처 심화</div>
-          <span class="schedule-tag tag-personal">PERSONAL</span>
-        </div>
-      </div>
-    </div>
+    <div class="schedule-list" id="schedule-list"></div>
   </div>
 
   <!-- ── 프로젝트 & 향후계획 ── -->
@@ -942,6 +929,20 @@
           </div>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- ── AI 비서 ── -->
+  <div class="panel ai-panel">
+    <div class="panel-header">
+      <div class="icon"></div>
+      AI 비서
+      <span class="count-badge">ONLINE</span>
+    </div>
+    <div class="chat-log" id="chat-log"></div>
+    <div class="add-todo">
+      <input type="text" id="ai-input" placeholder="예: 오후 3시 팀 회의 추가" />
+      <button class="btn-add" onclick="sendToAssistant()">전송</button>
     </div>
   </div>
 
@@ -1108,7 +1109,188 @@ function escHtml(s) {
 
 document.getElementById('warn-count').textContent = '경보 6건 활성';
 
+// ── 스케줄 (동적 + localStorage) ──
+const DEFAULT_SCHEDULE = [
+  { id: 1, time: '09:00', title: '팀 스탠드업 미팅', detail: '전체 팀 / 30분', tag: 'meeting' },
+  { id: 2, time: '10:30', title: '프론트엔드 코드 리뷰', detail: 'GitHub PR #142, #145', tag: 'work' },
+  { id: 3, time: '13:00', title: '클라이언트 데모 발표', detail: 'ACME Corp / Zoom 링크', tag: 'urgent' },
+  { id: 4, time: '15:00', title: '기술 문서 작성', detail: 'API 명세서 v3.0 업데이트', tag: 'work' },
+  { id: 5, time: '17:30', title: '주간 회고 & 플래닝', detail: '다음 주 스프린트 계획', tag: 'meeting' },
+  { id: 6, time: '19:00', title: '개인 스터디 - AI/ML', detail: '트랜스포머 아키텍처 심화', tag: 'personal' },
+];
+const TAG_DOT = { meeting: 'dot-blue', work: 'dot-cyan', personal: 'dot-green', urgent: 'dot-orange' };
+const TAG_LABEL = { meeting: 'MEETING', work: 'WORK', personal: 'PERSONAL', urgent: 'URGENT' };
+
+function pad2(n) { return String(n).padStart(2, '0'); }
+function byTime(a, b) { return a.time.localeCompare(b.time); }
+
+function loadSchedule() {
+  try {
+    const saved = localStorage.getItem('jarvis_schedule');
+    return saved ? JSON.parse(saved) : DEFAULT_SCHEDULE.slice();
+  } catch { return DEFAULT_SCHEDULE.slice(); }
+}
+
+function saveSchedule(sched) {
+  localStorage.setItem('jarvis_schedule', JSON.stringify(sched));
+}
+
+function renderSchedule() {
+  const sched = loadSchedule().slice().sort(byTime);
+  const list = document.getElementById('schedule-list');
+  const now = new Date();
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+  const nowLine = '<div class="current-time-line"><span class="now-label">▶ NOW</span><div class="now-bar"></div></div>';
+  let html = '';
+  let placed = false;
+  sched.forEach(s => {
+    const [h, m] = s.time.split(':').map(Number);
+    if (!placed && (h * 60 + m) > nowMin) { html += nowLine; placed = true; }
+    const dot = TAG_DOT[s.tag] || 'dot-cyan';
+    const label = TAG_LABEL[s.tag] || 'WORK';
+    html += `
+      <div class="schedule-item">
+        <span class="schedule-time">${escHtml(s.time)}</span>
+        <div class="schedule-dot ${dot}"></div>
+        <div class="schedule-content">
+          <div class="schedule-title">${escHtml(s.title)}</div>
+          ${s.detail ? `<div class="schedule-detail">${escHtml(s.detail)}</div>` : ''}
+          <span class="schedule-tag tag-${s.tag}">${label}</span>
+        </div>
+        <button class="schedule-del" onclick="deleteSchedule(event,${s.id})">✕</button>
+      </div>`;
+  });
+  if (!placed) html += nowLine;
+  list.innerHTML = html;
+}
+
+function addSchedule(item) {
+  const sched = loadSchedule();
+  const newId = sched.length ? Math.max(...sched.map(s => s.id)) + 1 : 1;
+  sched.push({ id: newId, time: item.time, title: item.title, detail: item.detail || '', tag: item.tag || 'work' });
+  saveSchedule(sched);
+  renderSchedule();
+}
+
+function deleteScheduleById(id) {
+  const sched = loadSchedule().filter(s => s.id !== id);
+  saveSchedule(sched);
+  renderSchedule();
+}
+
+function deleteSchedule(e, id) {
+  e.stopPropagation();
+  deleteScheduleById(id);
+}
+
+// ── AI 비서 (규칙기반 자연어 파서) ──
+function parseTime(text) {
+  let m = text.match(/(\d{1,2}):(\d{2})/);
+  if (m) {
+    const h = +m[1], min = +m[2];
+    if (h <= 23 && min <= 59) return pad2(h) + ':' + pad2(min);
+  }
+  m = text.match(/(\d{1,2})\s*시(\s*반)?(?:\s*(\d{1,2})\s*분)?/);
+  if (m) {
+    let h = +m[1];
+    const min = m[2] ? 30 : (m[3] ? +m[3] : 0);
+    const pm = /오후|저녁|밤|낮|pm/i.test(text);
+    const am = /오전|아침|새벽|am/i.test(text);
+    if (pm && h < 12) h += 12;
+    if (am && h === 12) h = 0;
+    if (h <= 23 && min <= 59) return pad2(h) + ':' + pad2(min);
+  }
+  return null;
+}
+
+function inferTag(text) {
+  if (/회의|미팅|스탠드업|면담/.test(text)) return 'meeting';
+  if (/발표|데모|긴급|마감|중요|deadline/i.test(text)) return 'urgent';
+  if (/스터디|개인|운동|병원|점심|저녁식사|휴식/.test(text)) return 'personal';
+  return 'work';
+}
+
+function parseIntent(text) {
+  if (/삭제|지워|취소|빼줘|빼|제거/.test(text)) return 'delete';
+  if (/추가|등록|잡아|넣어|예약|만들/.test(text)) return 'add';
+  if (/목록|보여|뭐\s*있|뭐있|알려|조회|확인|리스트/.test(text)) return 'list';
+  if (/도움|help|사용법|어떻게|뭐\s*할/i.test(text)) return 'help';
+  return null;
+}
+
+function extractTitle(text) {
+  return text
+    .replace(/\d{1,2}:\d{2}/g, ' ')
+    .replace(/(\d{1,2})\s*시(\s*반)?(\s*\d{1,2}\s*분)?/g, ' ')
+    .replace(/오전|오후|아침|저녁|새벽|밤|낮|오늘|내일|모레/g, ' ')
+    .replace(/추가|등록|잡아줘|잡아|넣어줘|넣어|예약|만들어줘|만들어|삭제|지워줘|지워|취소|제거|해줘|해|줘|좀|일정/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function parseCommand(text) {
+  const time = parseTime(text);
+  let intent = parseIntent(text);
+  if (!intent) intent = time ? 'add' : 'list';
+  return { intent, time, title: extractTitle(text), tag: inferTag(text) };
+}
+
+function listText() {
+  const sched = loadSchedule().slice().sort(byTime);
+  if (!sched.length) return '등록된 일정이 없습니다.';
+  return `오늘 일정 (${sched.length}건)\n` + sched.map(s => `• ${s.time}  ${s.title}`).join('\n');
+}
+
+function helpText() {
+  return 'AI 비서입니다. 이렇게 말해보세요.\n• 추가: "오후 3시 팀 회의 추가"\n• 삭제: "팀 회의 삭제" 또는 "15:00 삭제"\n• 조회: "오늘 일정 보여줘"';
+}
+
+function handleCommand(text) {
+  const cmd = parseCommand(text);
+  if (cmd.intent === 'help') return helpText();
+  if (cmd.intent === 'list') return listText();
+  if (cmd.intent === 'delete') {
+    const sched = loadSchedule();
+    let target = null;
+    if (cmd.time) target = sched.find(s => s.time === cmd.time);
+    if (!target && cmd.title) target = sched.find(s => s.title.includes(cmd.title) || cmd.title.includes(s.title));
+    if (!target) return '삭제할 일정을 찾지 못했습니다. "일정 보여줘"로 목록을 확인해 주세요.';
+    deleteScheduleById(target.id);
+    return `🗑️ ${target.time} '${target.title}' 일정을 삭제했습니다.`;
+  }
+  // add
+  if (!cmd.time) return '시간을 인식하지 못했습니다. 예: "오후 3시 팀 회의 추가" 처럼 시간을 함께 알려주세요.';
+  const title = cmd.title || '새 일정';
+  addSchedule({ time: cmd.time, title, tag: cmd.tag });
+  return `✅ ${cmd.time} '${title}' 일정을 추가했습니다. (${(TAG_LABEL[cmd.tag] || 'WORK')})`;
+}
+
+function addChat(role, text) {
+  const log = document.getElementById('chat-log');
+  const div = document.createElement('div');
+  div.className = 'chat-msg ' + (role === 'user' ? 'user' : 'bot');
+  div.innerHTML = escHtml(text);
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+}
+
+function sendToAssistant() {
+  const input = document.getElementById('ai-input');
+  const text = input.value.trim();
+  if (!text) return;
+  addChat('user', text);
+  addChat('bot', handleCommand(text));
+  input.value = '';
+}
+
+document.getElementById('ai-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') sendToAssistant();
+});
+
 renderTodos();
+renderSchedule();
+setInterval(renderSchedule, 60000);
+addChat('bot', helpText());
 </script>
 </body>
 </html>
